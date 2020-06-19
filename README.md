@@ -7,7 +7,7 @@ This custom AWS Java runtime make it easy to specify any JDK version (including 
 `jlink` utility of the Java Platform Module System to create a stripped-down (lean) build of the JDK. It also uses
 `Application Class-Data Sharing`, a feature introduced in Java 13. Both of these help to reduce the JDK startup time.
 
-# Supported 
+# Supported Lambda Event Handler Methods 
 
 In order for the custom runtime to call your Lambda event handler it must use one of the following methods as it's
 entry point.
