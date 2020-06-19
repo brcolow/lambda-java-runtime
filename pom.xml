@@ -143,6 +143,8 @@
        </executions>
        <configuration>
            <properties>
+             <awsRegion>US_WEST_2</awsRegion>
+             <jlinkModules>java.net.http,java.desktop,java.logging,java.naming,java.sql,java.xml,org.slf4j,org.slf4j.simple</jlinkModules>
              <repoVersion>13</repoVersion>
              <version>13U</version>
              <type>jdk</type>

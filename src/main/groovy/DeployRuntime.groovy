@@ -280,7 +280,7 @@ Process process = new ProcessBuilder(
         "--module-path", jdkRootDir.toString() + "/jmods" + modulePathSeparator +
         project.build.directory + "/lib" + modulePathSeparator +
         project.build.directory + "/classes",
-        "--add-modules", "java.net.http,java.desktop,java.logging,java.naming,java.sql,java.xml,com.dow.aws.lambda,org.slf4j,org.slf4j.simple")
+        "--add-modules", "com.dow.aws.lambda," + jlinkModules)
         .inheritIO()
         .start()
 
@@ -363,7 +363,7 @@ archive.finish()
 archiveStream.close()
 
 LambdaClient lambdaClient = LambdaClient.builder()
-        .region(Region.US_WEST_2).build()
+        .region(Region.of(awsRegion)).build()
 
 // aws lambda publish-layer-version --layer-name Java-11 --zip-file fileb://layer.zip
 def publishLayerRequest = PublishLayerVersionRequest.builder()
