@@ -1,11 +1,13 @@
-# Java 12+ AWS Lambda Custom Runtime
+# Java 13+ AWS Lambda Custom Runtime
 
 # About
 
 This custom AWS Java runtime make it easy to specify any JDK version (including pre-releases published by the
-`AdoptOpenJDK` project) and makes deploying the runtime to AWS as easy as running `mvn install`. The runtime uses the
-`jlink` utility of the Java Platform Module System to create a stripped-down (lean) build of the JDK. It also uses
-`Application Class-Data Sharing`, a feature introduced in Java 13. Both of these help to reduce the JDK startup time.
+[AdoptOpenJDK](https://adoptopenjdk.net/) project) and makes deploying the runtime to AWS as easy as running
+`mvn install`. The runtime uses the [jlink](https://docs.oracle.com/en/java/javase/11/tools/jlink.html) utility of the
+Java Platform Module System to create a stripped-down (lean) build of the JDK. It also uses 
+[Application Class-Data Sharing](https://openjdk.java.net/jeps/310), a feature introduced in Java 13. Both of these help
+to reduce the JDK startup time.
 
 # Supported Lambda Event Handler Methods 
 
