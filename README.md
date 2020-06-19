@@ -7,6 +7,33 @@ This custom AWS Java runtime make it easy to specify any JDK version (including 
 `jlink` utility of the Java Platform Module System to create a stripped-down (lean) build of the JDK. It also uses
 `Application Class-Data Sharing`, a feature introduced in Java 13. Both of these help to reduce the JDK startup time.
 
+# Supported 
+
+In order for the custom runtime to call your Lambda event handler it must use one of the following methods as it's
+entry point.
+
+* public void handleRequest(InputStream input, OutputStream output)
+* public void handleRequest(InputStream input, OutputStream output, Context context)
+ 
+These are very general entry-points that can easily be used when handling a specific JSON object (such as an 
+`APIGatewayProxyRequestEvent` when using a Lambda function connected to an API Gateway) like so (using the
+[jackson-jr](https://github.com/FasterXML/jackson-jr) library in this example):
+
+```java
+public class LambdaEventHandler {
+    public void handleRequest(InputStream input, OutputStream output, TestContext context) throws IOException {
+        APIGatewayProxyRequestEvent event = JSON.std.with(JSON.Feature.FAIL_ON_UNKNOWN_BEAN_PROPERTY, false)
+                .beanFrom(APIGatewayProxyRequestEvent.class, input);
+        // Do something with event.getHeaders(), event.getBody(), event.getQueryStringParameters(), etc.
+        // Return a APIGatewayProxyResponseEvent:
+        APIGatewayProxyResponseEvent response = handleEvent(event.getBody());
+        JSON.std.write(response, output);
+    }
+}
+```
+
+It is not necessary for the Lambda function to extend or implement any abstract class or interface. 
+ 
 # Change JDK Version
 
 The version of the JDK that will be used when deploying the runtime can be configured using the following

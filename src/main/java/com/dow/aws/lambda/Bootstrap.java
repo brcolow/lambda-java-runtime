@@ -29,7 +29,7 @@ import static java.util.Objects.requireNonNull;
  * The custom API runtime Bootstrap is responsible for interfacing with the custom runtime API and invoking our
  * Lambda request handler. Currently the only supported request handler methods that the Lambda must implement are:
  * <pre>{@code
- * public void handleRequest(InputStream input, OutputStream output throws IOException {}
+ * public void handleRequest(InputStream input, OutputStream output) throws IOException {}
  * }</pre>
  * <pre>{@code
  * public void handleRequest(InputStream input, OutputStream output, Context context) throws IOException {}
