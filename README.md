@@ -2,7 +2,7 @@
 
 # About
 
-This custom AWS Java runtime make it easy to specify any JDK version (including pre-releases published by the
+This custom AWS Java runtime makes it easy to specify any JDK version (including pre-releases published by the
 [AdoptOpenJDK](https://adoptopenjdk.net/) project) and makes deploying the runtime to AWS as easy as running
 `mvn install`. The runtime uses the [jlink](https://docs.oracle.com/en/java/javase/11/tools/jlink.html) utility of the
 Java Platform Module System to create a stripped-down (lean) build of the JDK. It also uses 
