@@ -95,6 +95,10 @@ The first step to deploy the runtime to your AWS account is to clone this repo. 
 deployed to AWS by running `mvn install`. To build the runtime without deploying to AWS (for testing, for example) 
 run `mvn package`.
 
+# mvn-assembly-plugin
+
+Make sure you have copied `src/assembly/lambda_deployment_package_assembly.xml` to your project.
+
 # TODO (Public Consumption)
 
 * Make it possible to supply a custom name for the published runtime.
