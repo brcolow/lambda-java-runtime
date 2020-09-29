@@ -7,10 +7,10 @@ import java.io.BufferedInputStream
 import groovy.json.JsonSlurper
 import groovy.transform.ToString
 
-@Grab(group='commons-io', module='commons-io', version='2.6')
+@Grab(group='commons-io', module='commons-io', version='2.8.0')
 import org.apache.commons.io.FileUtils
 
-@Grab(group='org.apache.commons', module='commons-compress', version='1.9')
+@Grab(group='org.apache.commons', module='commons-compress', version='1.20')
 import org.apache.commons.compress.archivers.ArchiveOutputStream
 import org.apache.commons.compress.archivers.ArchiveStreamFactory
 import org.apache.commons.compress.archivers.ArchiveEntry
@@ -21,7 +21,7 @@ import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry
 import org.apache.commons.compress.utils.IOUtils
 
-@Grab(group='software.amazon.awssdk', module='lambda', version='2.7.36')
+@Grab(group='software.amazon.awssdk', module='lambda', version='2.14.26')
 import software.amazon.awssdk.services.lambda.LambdaClient
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.lambda.model.PublishLayerVersionRequest

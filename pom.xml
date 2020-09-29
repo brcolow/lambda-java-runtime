@@ -49,7 +49,7 @@
        <plugin>
          <groupId>org.apache.maven.plugins</groupId>
          <artifactId>maven-source-plugin</artifactId>
-         <version>3.1.0</version>
+         <version>3.2.0</version>
          <executions>
            <execution>
              <id>attach-sources</id>
@@ -64,7 +64,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
-        <version>3.0.0-M2</version>
+        <version>3.0.0-M3</version>
         <executions>
           <execution>
             <id>enforce-rules</id>
@@ -97,7 +97,7 @@
       <plugin>
         <groupId>pl.project13.maven</groupId>
         <artifactId>git-commit-id-plugin</artifactId>
-        <version>3.0.1</version>
+        <version>4.0.2</version>
         <configuration>
           <abbrevLength>10</abbrevLength>
         </configuration>
@@ -114,7 +114,7 @@
 
        <plugin>
          <artifactId>maven-dependency-plugin</artifactId>
-         <version>3.1.1</version>
+         <version>3.1.2</version>
          <executions>
            <execution>
              <phase>prepare-package</phase>
@@ -143,16 +143,18 @@
        </executions>
        <configuration>
            <properties>
-             <awsRegion>US_WEST_2</awsRegion>
+             <awsRegion>us-west-2</awsRegion>
              <jlinkModules>java.net.http,java.desktop,java.logging,java.naming,java.sql,java.xml,org.slf4j,org.slf4j.simple</jlinkModules>
-             <repoVersion>13</repoVersion>
-             <version>13U</version>
+             <repoVersion>14</repoVersion>
+             <version>14U</version>
              <type>jdk</type>
              <arch>x64</arch>
              <os>linux</os>
              <impl>hotspot</impl>
+             <!-- https://github.com/AdoptOpenJDK/openjdk14-binaries/releases -->
              <!-- https://github.com/AdoptOpenJDK/openjdk13-binaries/releases -->
-             <releaseDate>2019-09-24-08-26</releaseDate>
+             <!-- etc. -->
+             <releaseDate>2020-07-28-07-34</releaseDate>
            </properties>
          <scripts>
            <script>file:///${project.basedir}/src/main/groovy/DeployRuntime.groovy</script>
@@ -162,7 +164,7 @@
          <dependency>
            <groupId>org.codehaus.groovy</groupId>
            <artifactId>groovy-all</artifactId>
-           <version>3.0.0-rc-2</version>
+           <version>3.0.5</version>
            <type>pom</type>
            <scope>runtime</scope>
          </dependency>
