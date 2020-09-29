@@ -305,6 +305,7 @@ bootstrapScript.setExecutable(true, false)
 
 def generatedLauncherScript = new File(project.build.directory + "/dist/bin/bootstrap")
 def newText = generatedLauncherScript.text
+//  #-Xlog:class+load=info -Xlog:cds -Xlog:cds+dynamic=debug
 newText = newText.replace('JLINK_VM_OPTIONS=',
 '''
 dynamicArchive="/tmp/archive.jsa"
@@ -313,7 +314,7 @@ if [ ! -f "$archiveFile" ]; then
 else
   archiveArg="-XX:SharedArchiveFile"
 fi
-JLINK_VM_OPTIONS="$archiveArg=$dynamicArchive -XX:+UseCompressedOops -XX:+UseG1GC -XX:+UseCompressedClassPointers -Xshare:on" #-Xlog:class+load=info -Xlog:cds -Xlog:cds+dynamic=debug 
+JLINK_VM_OPTIONS="$archiveArg=$dynamicArchive -XX:+UseCompressedOops -XX:+UseG1GC -XX:+UseCompressedClassPointers -Xshare:on -Xlog:cds=warning"
 ''')
 generatedLauncherScript.newWriter().withWriter {w -> w << newText}
 
