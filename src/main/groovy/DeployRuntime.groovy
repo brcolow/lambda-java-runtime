@@ -315,6 +315,7 @@ else
   archiveArg="-XX:SharedArchiveFile"
 fi
 JLINK_VM_OPTIONS="$archiveArg=$dynamicArchive -XX:+UseCompressedOops -XX:+UseG1GC -XX:+UseCompressedClassPointers -Xshare:on -Xlog:cds=warning"
+export AWS_EXECUTION_ENV=AWS_Lambda_java11
 ''')
 generatedLauncherScript.newWriter().withWriter {w -> w << newText}
 
