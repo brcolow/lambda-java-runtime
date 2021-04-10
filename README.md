@@ -15,17 +15,21 @@ In order for the custom runtime to call your Lambda event handler it must use on
 entry point.
 
 * public void handleRequest(InputStream input, OutputStream output)
-* public void handleRequest(InputStream input, OutputStream output, Context context)
+* public void handleRequest(InputStream input, OutputStream output, String context)
  
+The second method will be passed a JSON String containing an [AWS Lambda Context object](https://github.com/aws/aws-lambda-java-libs/blob/master/aws-lambda-java-core/src/main/java/com/amazonaws/services/lambda/runtime/Context.java).
+
 These are very general entry-points that can easily be used when handling a specific JSON object (such as an 
 `APIGatewayProxyRequestEvent` when using a Lambda function connected to an API Gateway) like so (using the
 [jackson-jr](https://github.com/FasterXML/jackson-jr) library in this example):
 
 ```java
 public class LambdaEventHandler {
-    public void handleRequest(InputStream input, OutputStream output, TestContext context) throws IOException {
+    public void handleRequest(InputStream input, OutputStream output, String context) throws IOException {
         APIGatewayProxyRequestEvent event = JSON.std.with(JSON.Feature.FAIL_ON_UNKNOWN_BEAN_PROPERTY, false)
                 .beanFrom(APIGatewayProxyRequestEvent.class, input);
+        Context context = JSON.std.with(JSON.Feature.FAIL_ON_UNKNOWN_BEAN_PROPERTY, false)
+                .beanFrom(LambdaContext.class, contextJson);
         // Do something with event.getHeaders(), event.getBody(), event.getQueryStringParameters(), etc.
         // Return a APIGatewayProxyResponseEvent:
         APIGatewayProxyResponseEvent response = handleEvent(event.getBody());

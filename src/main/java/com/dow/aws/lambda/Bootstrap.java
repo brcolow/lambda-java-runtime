@@ -29,7 +29,7 @@ import static java.util.Objects.requireNonNull;
  * The custom API runtime Bootstrap is responsible for interfacing with the custom runtime API and invoking our
  * Lambda request handler. Currently the only supported request handler methods that the Lambda must implement are:
  * <pre>{@code
- * public void handleRequest(InputStream input, OutputStream output) throws IOException {}
+ * public void handleRequest(InputStream input, OutputStream output throws IOException {}
  * }</pre>
  * <pre>{@code
  * public void handleRequest(InputStream input, OutputStream output, Context context) throws IOException {}
@@ -43,6 +43,15 @@ public class Bootstrap {
     private static final String LAMBDA_INVOCATION_URL_TEMPLATE = "http://{0}/{1}/runtime/invocation/{2}/response";
     private static final String LAMBDA_INIT_ERROR_URL_TEMPLATE = "http://{0}/{1}/runtime/init/error";
     private static final String LAMBDA_ERROR_URL_TEMPLATE = "http://{0}/{1}/runtime/invocation/{2}/error";
+
+    // Headers sent with runtime/invocation/next resource:
+    // https://docs.aws.amazon.com/lambda/latest/dg/runtimes-api.html#runtimes-api-next
+    private static final String LAMBDA_RUNTIME_AWS_REQUEST_ID = "Lambda-Runtime-Aws-Request-Id";
+    private static final String LAMBDA_RUNTIME_DEADLINE_MS = "Lambda-Runtime-Deadline-Ms";
+    private static final String LAMBDA_RUNTIME_INVOKED_FUNCTION_ARN = "Lambda-Runtime-Invoked-Function-Arn";
+    private static final String LAMBDA_RUNTIME_TRACE_ID = "Lambda-Runtime-Trace-Id";
+    private static final String LAMBDA_RUNTIME_CLIENT_CONTEXT = "Lambda-Runtime-Client-Context";
+    private static final String LAMBDA_RUNTIME_COGNITO_IDENTITY = "Lambda-Runtime-Cognito-Identity";
 
     static {
         System.setProperty("org.slf4j.simpleLogger.logFile", "System.out");
@@ -87,11 +96,34 @@ public class Bootstrap {
         while (true) {
             // Get next Lambda Event
             try {
-                HttpResponse<InputStream> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofInputStream());
-                LOGGER.info("response: " + response.body());
-                requestId = response.headers().firstValue("Lambda-Runtime-Aws-Request-Id").orElse("");
+                HttpResponse<InputStream> response = HTTP_CLIENT.send(
+                        request, HttpResponse.BodyHandlers.ofInputStream());
+                requestId = response.headers().firstValue(LAMBDA_RUNTIME_AWS_REQUEST_ID).orElse("");
+                String invokedFunctionArn = response.headers()
+                        .firstValue(LAMBDA_RUNTIME_INVOKED_FUNCTION_ARN).orElse("");
+                long deadlineMillis = Long.parseLong(response.headers()
+                        .firstValue(LAMBDA_RUNTIME_DEADLINE_MS).orElse("0"));
+                String functionName = "";
+                // arn:aws:lambda:us-east-2:123456789012:function:custom-runtime
+                String[] arnParts = invokedFunctionArn.split(":");
+                if (arnParts.length == 7) {
+                    functionName = arnParts[6];
+                }
                 // Invoke Handler Method
-                String result = invoke(handlerClass, handlerMethod, response.body());
+                String result = invoke(handlerClass, handlerMethod, response.body(), String.format("{\n" +
+                                "\"awsRequestId\": \"%s\",\n" +
+                                "\"logGroupName\": \"%s\",\n" +
+                                "\"logStreamName\": \"%s\",\n" +
+                                "\"functionName\": \"%s\",\n" +
+                                "\"functionVersion\": \"%s\",\n" +
+                                "\"invokedFunctionArn\": \"%s\",\n" +
+                                "\"remainingTimeInMillis\": \"%d\",\n" +
+                                "\"memoryLimitInMB\": \"%d\"\n" +
+                                "}", requestId, System.getenv("AWS_LAMBDA_LOG_GROUP_NAME"),
+                        System.getenv("AWS_LAMBDA_LOG_STREAM_NAME"), functionName,
+                        System.getenv("AWS_LAMBDA_FUNCTION_VERSION"), invokedFunctionArn,
+                        Math.max((int) (deadlineMillis - System.currentTimeMillis()), 0),
+                        Integer.parseInt(System.getenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE"))));
                 // Post the results of Handler Invocation
                 String invocationUrl = MessageFormat.format(LAMBDA_INVOCATION_URL_TEMPLATE, runtimeApi,
                         LAMBDA_VERSION_DATE, requestId);
@@ -108,9 +140,9 @@ public class Bootstrap {
 
     private static final String ERROR_RESPONSE_TEMPLATE =
             "'{'" +
-                    "  \"errorMessage\": \"{0}\"," +
-                    "  \"errorType\": \"{1}\"" +
-                    "'}'";
+            "  \"errorMessage\": \"{0}\"," +
+            "  \"errorType\": \"{1}\"" +
+            "'}'";
 
     private static void postError(String errorUrl, String errMsg, String errType) {
         String error = MessageFormat.format(ERROR_RESPONSE_TEMPLATE, errMsg, errType);
@@ -122,7 +154,7 @@ public class Bootstrap {
         }
     }
 
-    private static URL[] initClasspath(String taskRoot) throws MalformedURLException {
+    private static URL[] initClasspath(String taskRoot) {
         File cwd = new File(taskRoot);
 
         List<File> classPath = new ArrayList<>();
@@ -162,10 +194,9 @@ public class Bootstrap {
         return null;
     }
 
-    private static String invoke(Class<?> handlerClass, Method handlerMethod, InputStream response)
+    private static String invoke(Class<?> handlerClass, Method handlerMethod, InputStream response, String contextJson)
             throws Exception {
         Object handlerClassObj = handlerClass.getConstructor().newInstance();
-        // String body = response.body();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         Object[] args;
@@ -173,8 +204,8 @@ public class Bootstrap {
             // public void handleRequest(InputStream input, OutputStream output)
             args = new Object[]{response, baos};
         } else if (handlerMethod.getParameterCount() == 3) {
-            // public void handleRequest(InputStream input, OutputStream output, TestContext context)
-            args = new Object[]{response, baos, null};
+            // public void handleRequest(InputStream input, OutputStream output, String context)
+            args = new Object[]{response, baos, contextJson};
         } else {
             LOGGER.error("public void handleRequest method does not take 2 or 3 arguments!");
             throw new RuntimeException("public void handleRequest method does not take 2 or 3 arguments!");
