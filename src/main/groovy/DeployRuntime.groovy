@@ -35,9 +35,8 @@ import java.util.stream.Collectors
 
 @ToString
 class Release {
-    private static final Pattern ADOPTGIT_FILENAME_PATTERN = ~/OpenJDK([\da-zA-Z]+)-([a-z]+)_([0-9a-z\-]+)_([0-9a-z]+)_([0-9a-z]+)[_|\-]([0-9\-_]+)\.(.+)/
+    private static final Pattern ADOPTGIT_FILENAME_PATTERN = ~/OpenJDK-([a-z]+)_([0-9a-z\-]+)_([0-9a-z]+)_([0-9a-z]+)[_|\-]([0-9\-_]+)\.(.+)/
 
-    String version
     String type
     String arch
     String os
@@ -58,18 +57,16 @@ class Release {
         }
         final Matcher matcher = ADOPTGIT_FILENAME_PATTERN.matcher(fileName)
         if (matcher.find()) {
-            version = matcher.group(1)
-            type = matcher.group(2)
-            arch = matcher.group(3)
-            os = matcher.group(4)
-            impl = matcher.group(5)
-            releaseDate = matcher.group(6)
-            extension = matcher.group(7)
+            type = matcher.group(1)
+            arch = matcher.group(2)
+            os = matcher.group(3)
+            impl = matcher.group(4)
+            releaseDate = matcher.group(5)
+            extension = matcher.group(6)
         }
     }
 
-    Release(version, type, arch, os, impl, releaseDate) {
-        this.version = version
+    Release(type, arch, os, impl, releaseDate) {
         this.type = type
         this.arch = arch
         this.os = os
@@ -79,8 +76,7 @@ class Release {
 
     String toSafeDirectoryName() {
         return String.format(
-                "ADOPTGIT_%s_%s_%s_%s_%s_%s",
-                version.toLowerCase().trim(),
+                "ADOPTGIT_%s_%s_%s_%s_%s",
                 type.toLowerCase().trim(),
                 arch.toLowerCase().trim(),
                 os.toLowerCase().trim(),
@@ -95,7 +91,6 @@ class Release {
 
         Release release = (Release) o
 
-        if (version != release.version) return false
         if (type != release.type) return false
         if (arch != release.arch) return false
         if (os != release.os) return false
@@ -107,13 +102,13 @@ class Release {
 }
 
 /**
- * Fetches the last 100 AdoptOpenJDK releases (pagination limit) for the given version (defaults to 13) and returns
+ * Fetches the last 100 AdoptOpenJDK releases (pagination limit) for the given version and returns
  * them as a List of Release objects.
  *
  * @param version the version to get (pre)-releases for
  * @return the list of Release objects
  */
-def getAdoptJdkReleases(version = 13) {
+def getAdoptJdkReleases(version) {
     def releasesJson = new URL("https://api.github.com/repos/AdoptOpenJDK/openjdk" + version + "-binaries/releases").text
     def releasesMap = new JsonSlurper().parseText(releasesJson)
     def releases = []
@@ -230,9 +225,9 @@ def extractZip(jdkHashDir, jdkArchive) {
 
 // Get the release corresponding to the properties configured in gmaven-plus plugin config (in pom.xml).
 def releases = getAdoptJdkReleases(repoVersion)
-def releaseOpt = releases.stream().filter { r -> r.equals(new Release(version, type, arch, os,  impl, releaseDate))}.findFirst()
+def releaseOpt = releases.stream().filter { r -> r.equals(new Release(type, arch, os,  impl, releaseDate))}.findFirst()
 if (!releaseOpt.isPresent()) {
-    throw new IllegalArgumentException("Could not find JDK release for version = " + version + ", type = " +
+    throw new IllegalArgumentException("Could not find JDK release for version = " + repoVersion + ", type = " +
             type + ", arch = " + arch + ", os = " + os + ", impl = " + impl + ", releaseDate = " + releaseDate)
 }
 Release release = releaseOpt.get()
@@ -245,7 +240,7 @@ System.out.println("JDK root directory: \"" + jdkRootDir + "\".")
 // instead of for linux, for windows, *and then* use the jlink binary contained in that - not the one in the linux JDK.
 def jdkWinRootDir = null
 if (System.properties['os.name'].toLowerCase().contains('windows')) {
-    def winReleases = releases.stream().filter { r -> r.equals(new Release(version, type, arch,
+    def winReleases = releases.stream().filter { r -> r.equals(new Release(type, arch,
             "windows", impl, releaseDate))}.collect(Collectors.toList())
 
     def winZipRelease = null
@@ -257,7 +252,7 @@ if (System.properties['os.name'].toLowerCase().contains('windows')) {
     }
 
     if (winZipRelease == null) {
-        throw new IllegalArgumentException("Could not find corresponding Windows JDK release for version = " + version + ", type = " +
+        throw new IllegalArgumentException("Could not find corresponding Windows JDK release for version = " + repoVersion + ", type = " +
                 type + ", arch = " + arch + ", os = windows" + ", impl = " + impl, ", extension = zip")
     }
     jdkWinRootDir = getJdkRootDir(winZipRelease)
@@ -321,7 +316,7 @@ export AWS_EXECUTION_ENV=AWS_Lambda_java11
 generatedLauncherScript.newWriter().withWriter {w -> w << newText}
 
 // cp -r ./dist ./layer/dist
-new AntBuilder().copy(todir: project.build.directory + "/layer/dist") {
+new groovy.ant.AntBuilder().copy(todir: project.build.directory + "/layer/dist") {
     fileset( dir: project.build.directory + "/dist" )
 }
 
@@ -368,7 +363,7 @@ archiveStream.close()
 LambdaClient lambdaClient = LambdaClient.builder()
         .region(Region.of(awsRegion)).build()
 
-// aws lambda publish-layer-version --layer-name Java-11 --zip-file fileb://layer.zip
+// aws lambda publish-layer-version --layer-name Custom Java Runtime--zip-file fileb://layer.zip
 def publishLayerRequest = PublishLayerVersionRequest.builder()
         .layerName("Custom Java Runtime")
         .description(String.format("%s runtime.", jdkRootDir.getName()))
