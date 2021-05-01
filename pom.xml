@@ -132,7 +132,7 @@
        <plugin>
        <groupId>org.codehaus.gmavenplus</groupId>
        <artifactId>gmavenplus-plugin</artifactId>
-       <version>1.7.1</version>
+       <version>1.12.1</version>
        <executions>
          <execution>
            <goals>
@@ -161,9 +161,9 @@
        </configuration>
        <dependencies>
          <dependency>
-           <groupId>org.codehaus.groovy</groupId>
+           <groupId>org.apache.groovy</groupId>
            <artifactId>groovy-all</artifactId>
-           <version>3.0.5</version>
+           <version>4.0.0-alpha-3</version>
            <type>pom</type>
            <scope>runtime</scope>
          </dependency>
