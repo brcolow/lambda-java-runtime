@@ -48,17 +48,15 @@ properties in the configuration of `gmavenplus-plugin` in `pom.xml`:
 ```pom
 <configuration>
    <properties>
-     <repoVersion>13</repoVersion>
-     <version>13U</version>
+     <awsRegion>us-west-2</awsRegion>
+     <jlinkModules>java.net.http,java.desktop,java.logging,java.naming,java.sql,java.xml,org.slf4j,org.slf4j.simple</jlinkModules>
+     <repoVersion>17</repoVersion>
      <type>jdk</type>
      <arch>x64</arch>
      <os>linux</os>
      <impl>hotspot</impl>
-     <!-- https://github.com/AdoptOpenJDK/openjdk13-binaries/releases -->
-     <releaseDate>2019-09-24-08-26</releaseDate>
-     <!-- etc. -->
+     <releaseDate>2021-04-06-23-30</releaseDate>
    </properties>
-    <!-- etc. -->
 </configuration>
 ```
 

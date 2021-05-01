@@ -277,6 +277,7 @@ Process process = new ProcessBuilder(
         "--launcher", "bootstrap=com.dow.aws.lambda/com.dow.aws.lambda.Bootstrap",
         "--compress=2", "--no-header-files", "--no-man-pages",
         // "--strip-debug",
+        // Consider using --strip-native-debug-symbols instead.
         "--module-path", jdkRootDir.toString() + "/jmods" + modulePathSeparator +
         project.build.directory + "/lib" + modulePathSeparator +
         project.build.directory + "/classes",
@@ -307,7 +308,7 @@ def generatedLauncherScript = new File(project.build.directory + "/dist/bin/boot
 def newText = generatedLauncherScript.text
 //  #-Xlog:class+load=info -Xlog:cds -Xlog:cds+dynamic=debug
 newText = newText.replace('JLINK_VM_OPTIONS=',
-'''
+        '''
 dynamicArchive="/tmp/archive.jsa"
 if [ ! -f "$archiveFile" ]; then
   archiveArg="-XX:ArchiveClassesAtExit"

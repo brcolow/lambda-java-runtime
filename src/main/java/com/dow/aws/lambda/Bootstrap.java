@@ -16,11 +16,16 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.dow.aws.lambda.Bootstrap.ThrowingFunction.unchecked;
 import static java.util.Objects.requireNonNull;
@@ -129,6 +134,14 @@ public class Bootstrap {
                         LAMBDA_VERSION_DATE, requestId);
                 HTTP_CLIENT.send(HttpRequest.newBuilder().uri(URI.create(invocationUrl)).POST(
                         HttpRequest.BodyPublishers.ofString(result)).build(), HttpResponse.BodyHandlers.ofString());
+                try (Stream<Path> walk = Files.walk(Paths.get("."))) {
+                    List<String> jfrRecordings = walk
+                            .filter(p -> !Files.isDirectory(p))
+                            .map(p -> p.toString().toLowerCase())
+                            .filter(f -> f.endsWith("jfr"))
+                            .collect(Collectors.toList());
+                    LOGGER.info("jfr recordings: " + jfrRecordings);
+                }
             } catch (Exception ex) {
                 String initErrorUrl = MessageFormat.format(LAMBDA_ERROR_URL_TEMPLATE, runtimeApi,
                         LAMBDA_VERSION_DATE, requestId);

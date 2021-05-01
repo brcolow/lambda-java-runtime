@@ -145,8 +145,7 @@
            <properties>
              <awsRegion>us-west-2</awsRegion>
              <jlinkModules>java.net.http,java.desktop,java.logging,java.naming,java.sql,java.xml,org.slf4j,org.slf4j.simple</jlinkModules>
-             <repoVersion>14</repoVersion>
-             <version>14U</version>
+             <repoVersion>17</repoVersion>
              <type>jdk</type>
              <arch>x64</arch>
              <os>linux</os>
@@ -154,7 +153,7 @@
              <!-- https://github.com/AdoptOpenJDK/openjdk14-binaries/releases -->
              <!-- https://github.com/AdoptOpenJDK/openjdk13-binaries/releases -->
              <!-- etc. -->
-             <releaseDate>2020-07-28-07-34</releaseDate>
+             <releaseDate>2021-04-06-23-30</releaseDate>
            </properties>
          <scripts>
            <script>file:///${project.basedir}/src/main/groovy/DeployRuntime.groovy</script>
