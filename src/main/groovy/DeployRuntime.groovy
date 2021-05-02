@@ -325,9 +325,9 @@ new groovy.ant.AntBuilder().copy(todir: project.build.directory + "/layer/dist")
 // are bundling with. TODO: Check if classes.jsa exists already and if so don't run this snippet.
 System.out.println("Running java -Xshare:dump on Linux JVM to generate base classes.jsa archive...")
 
-Process dumpProcess = new ProcessBuilder("bash -c \"target/layer/dist/bin/java -Xmx248M -Xshare:dump\"")
-        .inheritIO()
-        .start()
+ProcessBuilder dumpProcessBuilder = new ProcessBuilder("bash.exe", "-c", "\"target/layer/dist/bin/java -Xmx248M -Xshare:dump\"")
+        .inheritIO();
+Process dumpProcess = dumpProcessBuilder.start()
 exitCode = dumpProcess.waitFor()
 if (exitCode != 0) {
     System.out.println("Non-zero exit code from java -Xshare:dump: " + exitCode)
@@ -363,7 +363,7 @@ archiveStream.close()
 LambdaClient lambdaClient = LambdaClient.builder()
         .region(Region.of(awsRegion)).build()
 
-// aws lambda publish-layer-version --layer-name Custom Java Runtime--zip-file fileb://layer.zip
+// aws lambda publish-layer-version --layer-name Custom Java Runtime --zip-file fileb://layer.zip
 def publishLayerRequest = PublishLayerVersionRequest.builder()
         .layerName("Custom Java Runtime")
         .description(String.format("%s runtime.", jdkRootDir.getName()))
