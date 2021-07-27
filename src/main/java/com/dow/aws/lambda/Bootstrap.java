@@ -104,6 +104,11 @@ public class Bootstrap {
                 HttpResponse<InputStream> response = HTTP_CLIENT.send(
                         request, HttpResponse.BodyHandlers.ofInputStream());
                 requestId = response.headers().firstValue(LAMBDA_RUNTIME_AWS_REQUEST_ID).orElse("");
+                // This allows for creating custom AWS X-Ray subsegments on our custom runtime.
+                // See: https://github.com/aws/aws-xray-sdk-java/commit/67172dc861e785b8f8f230c7c6ba00aac562de71
+                // aws-xray-sdk-java from version 2.9.0 on will read this property.
+                System.setProperty("com.amazonaws.xray.traceHeader",
+                        response.headers().firstValue(LAMBDA_RUNTIME_TRACE_ID).orElse(""));
                 String invokedFunctionArn = response.headers()
                         .firstValue(LAMBDA_RUNTIME_INVOKED_FUNCTION_ARN).orElse("");
                 long deadlineMillis = Long.parseLong(response.headers()
@@ -129,6 +134,7 @@ public class Bootstrap {
                         System.getenv("AWS_LAMBDA_FUNCTION_VERSION"), invokedFunctionArn,
                         Math.max((int) (deadlineMillis - System.currentTimeMillis()), 0),
                         Integer.parseInt(System.getenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE"))));
+
                 // Post the results of Handler Invocation
                 String invocationUrl = MessageFormat.format(LAMBDA_INVOCATION_URL_TEMPLATE, runtimeApi,
                         LAMBDA_VERSION_DATE, requestId);
