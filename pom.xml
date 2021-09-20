@@ -143,17 +143,14 @@
        </executions>
        <configuration>
            <properties>
-             <awsRegion>us-west-2</awsRegion>
-             <jlinkModules>java.net.http,java.desktop,java.logging,java.naming,java.sql,java.xml,org.slf4j,org.slf4j.simple</jlinkModules>
-             <repoVersion>17</repoVersion>
-             <type>jdk</type>
-             <arch>x64</arch>
-             <os>linux</os>
-             <impl>hotspot</impl>
-             <!-- https://github.com/AdoptOpenJDK/openjdk14-binaries/releases -->
-             <!-- https://github.com/AdoptOpenJDK/openjdk13-binaries/releases -->
-             <!-- etc. -->
-             <releaseDate>2021-04-06-23-30</releaseDate>
+               <awsRegion>us-west-2</awsRegion>
+               <jlinkModules>java.net.http,java.desktop,java.logging,java.naming,java.sql,java.xml,jdk.crypto.ec,org.slf4j,org.slf4j.simple</jlinkModules>
+               <repoVersion>17</repoVersion>
+               <type>jdk</type>
+               <arch>x64</arch>
+               <os>linux</os>
+               <impl>hotspot</impl>
+               <releaseDate>2021-09-17-03-23</releaseDate>
            </properties>
          <scripts>
            <script>file:///${project.basedir}/src/main/groovy/DeployRuntime.groovy</script>

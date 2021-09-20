@@ -35,8 +35,6 @@ import java.util.stream.Collectors
 
 @ToString
 class Release {
-    private static final Pattern ADOPTGIT_FILENAME_PATTERN = ~/OpenJDK-([a-z]+)_([0-9a-z\-]+)_([0-9a-z]+)_([0-9a-z]+)[_|\-]([0-9\-_]+)\.(.+)/
-
     String type
     String arch
     String os
@@ -48,14 +46,14 @@ class Release {
     String extension
     long size
 
-    Release(Map releaseMap) {
+    Release(Map releaseMap, Pattern regexPattern) {
         fileName = releaseMap.name
         mime = releaseMap.content_type
         size = releaseMap.size as long
         if (fileName.endsWith(".zip") || fileName.endsWith(".tar.gz")) {
             link = releaseMap.browser_download_url
         }
-        final Matcher matcher = ADOPTGIT_FILENAME_PATTERN.matcher(fileName)
+        final Matcher matcher = regexPattern.matcher(fileName)
         if (matcher.find()) {
             type = matcher.group(1)
             arch = matcher.group(2)
@@ -63,6 +61,7 @@ class Release {
             impl = matcher.group(4)
             releaseDate = matcher.group(5)
             extension = matcher.group(6)
+            // System.out.println(this)
         }
     }
 
@@ -102,19 +101,19 @@ class Release {
 }
 
 /**
- * Fetches the last 100 AdoptOpenJDK releases (pagination limit) for the given version and returns
+ * Fetches the last 100 Adoptium releases (pagination limit) for the given version and returns
  * them as a List of Release objects.
  *
  * @param version the version to get (pre)-releases for
  * @return the list of Release objects
  */
-def getAdoptJdkReleases(version) {
-    def releasesJson = new URL("https://api.github.com/repos/AdoptOpenJDK/openjdk" + version + "-binaries/releases").text
+def getAdoptJdkReleases(version, regexPattern) {
+    def releasesJson = new URL("https://api.github.com/repos/adoptium/temurin" + version + "-binaries/releases").text
     def releasesMap = new JsonSlurper().parseText(releasesJson)
     def releases = []
     releasesMap.each { releaseJson ->
         releaseJson.assets.each { releaseAssetJson ->
-            Release release = new Release(releaseAssetJson)
+            Release release = new Release(releaseAssetJson, regexPattern)
             releases.add(release)
         }
     }
@@ -224,8 +223,8 @@ def extractZip(jdkHashDir, jdkArchive) {
 }
 
 // Get the release corresponding to the properties configured in gmaven-plus plugin config (in pom.xml).
-def releases = getAdoptJdkReleases(repoVersion)
-def releaseOpt = releases.stream().filter { r -> r.equals(new Release(type, arch, os,  impl, releaseDate))}.findFirst()
+def releases = getAdoptJdkReleases(repoVersion, Pattern.compile("OpenJDK${repoVersion}-([a-z]+)_([0-9a-z\\-]+)_([0-9a-z]+)_([0-9a-z]+)[_|\\-]([0-9\\-_]+)\\.(.+)"))
+def releaseOpt = releases.stream().filter { r -> r.equals(new Release(type, arch, os, impl, releaseDate))}.findFirst()
 if (!releaseOpt.isPresent()) {
     throw new IllegalArgumentException("Could not find JDK release for version = " + repoVersion + ", type = " +
             type + ", arch = " + arch + ", os = " + os + ", impl = " + impl + ", releaseDate = " + releaseDate)
