@@ -23,6 +23,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -66,9 +67,25 @@ public class Bootstrap {
     public static void main(String[] args) {
         // List of environment variables available to a Lambda (a custom runtime runs in such an environment):
         // https://docs.aws.amazon.com/lambda/latest/dg/lambda-environment-variables.html
+        Objects.requireNonNull(System.getenv("AWS_LAMBDA_RUNTIME_API"));
+        Objects.requireNonNull(System.getenv("LAMBDA_TASK_ROOT"));
+        Objects.requireNonNull(System.getenv("_HANDLER"));
         String runtimeApi = System.getenv("AWS_LAMBDA_RUNTIME_API");
+        LOGGER.info("AWS_LAMBDA_RUNTIME_API: \"" + runtimeApi + "\".");
         String taskRoot = System.getenv("LAMBDA_TASK_ROOT");
+        LOGGER.info("LAMBDA_TASK_ROOT: \"" + taskRoot + "\".");
         String handlerName = System.getenv("_HANDLER");
+        LOGGER.info("_HANDLER: \"" + handlerName + "\".");
+        if (handlerName.isBlank() || !handlerName.contains("::")) {
+            String initErrorUrl = MessageFormat.format(LAMBDA_INIT_ERROR_URL_TEMPLATE, runtimeApi, LAMBDA_VERSION_DATE);
+            postError(initErrorUrl, String.format("_HANDLER environment variable \"%s\" was blank or malformed (must " +
+                            "contain \"::\" separator)",
+                    handlerName), "InitError");
+            LOGGER.error(String.format("_HANDLER environment variable \"%s\" was blank or malformed (must contain " +
+                            "\"::\" separator)",
+                    handlerName));
+            return;
+        }
         // Get the handler class and method name from the Lambda Configuration in the format of <class>::<method>
         String[] handlerParts = handlerName.split("::");
         Class handlerClass;
