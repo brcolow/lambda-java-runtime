@@ -133,7 +133,7 @@
        <plugin>
        <groupId>org.codehaus.gmavenplus</groupId>
        <artifactId>gmavenplus-plugin</artifactId>
-       <version>1.13.0</version>
+       <version>1.13.1</version>
        <executions>
          <execution>
            <goals>
@@ -145,13 +145,13 @@
        <configuration>
            <properties>
                <awsRegion>us-west-2</awsRegion>
-               <jlinkModules>java.net.http,java.desktop,java.logging,java.naming,java.sql,java.xml,jdk.crypto.ec,org.slf4j,org.slf4j.simple</jlinkModules>
-               <repoVersion>17</repoVersion>
+               <jlinkModules>java.net.http,java.desktop,java.logging,java.naming,java.sql,java.xml,jdk.crypto.ec,jdk.jfr,jdk.management.jfr,org.slf4j,org.slf4j.simple</jlinkModules>
+               <repoVersion>19</repoVersion>
                <type>jdk</type>
                <arch>x64</arch>
                <os>linux</os>
                <impl>hotspot</impl>
-               <releaseDate>2021-09-17-03-23</releaseDate>
+               <releaseDate>2022-12-01-09-02</releaseDate>
            </properties>
          <scripts>
            <script>file:///${project.basedir}/src/main/groovy/DeployRuntime.groovy</script>
@@ -161,7 +161,7 @@
          <dependency>
            <groupId>org.apache.groovy</groupId>
            <artifactId>groovy-all</artifactId>
-           <version>4.0.0-beta-1</version>
+           <version>4.0.0</version>
            <type>pom</type>
            <scope>runtime</scope>
          </dependency>

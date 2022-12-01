@@ -48,14 +48,12 @@ properties in the configuration of `gmavenplus-plugin` in `pom.xml`:
 ```pom
 <configuration>
    <properties>
-     <awsRegion>us-west-2</awsRegion>
-     <jlinkModules>java.net.http,java.desktop,java.logging,java.naming,java.sql,java.xml,org.slf4j,org.slf4j.simple</jlinkModules>
-     <repoVersion>17</repoVersion>
+     <repoVersion>19</repoVersion>
      <type>jdk</type>
      <arch>x64</arch>
      <os>linux</os>
      <impl>hotspot</impl>
-     <releaseDate>2021-04-06-23-30</releaseDate>
+     <releaseDate>2022-02-03-05-48</releaseDate>
    </properties>
 </configuration>
 ```
@@ -63,7 +61,7 @@ properties in the configuration of `gmavenplus-plugin` in `pom.xml`:
 # Configure AWS Region
 
 You can change the region that will be used for deploying the runtime by the `awsRegion` property of the
-`gmavenplus-plugin` configurationin `pom.xml`:
+`gmavenplus-plugin` configuration in `pom.xml`:
 
 ```pom
 <configuration>
@@ -104,6 +102,7 @@ Make sure you have copied `src/assembly/lambda_deployment_package_assembly.xml` 
 # TODO (Public Consumption)
 
 * Make it possible to supply a custom name for the published runtime.
+* Allow for specifying a release version, not just a release date.
 
 # Credit
 

@@ -7,10 +7,10 @@ import java.io.BufferedInputStream
 import groovy.json.JsonSlurper
 import groovy.transform.ToString
 
-@Grab(group='commons-io', module='commons-io', version='2.8.0')
+@Grab(group='commons-io', module='commons-io', version='2.11.0')
 import org.apache.commons.io.FileUtils
 
-@Grab(group='org.apache.commons', module='commons-compress', version='1.20')
+@Grab(group='org.apache.commons', module='commons-compress', version='1.22')
 import org.apache.commons.compress.archivers.ArchiveOutputStream
 import org.apache.commons.compress.archivers.ArchiveStreamFactory
 import org.apache.commons.compress.archivers.ArchiveEntry
@@ -21,7 +21,7 @@ import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry
 import org.apache.commons.compress.utils.IOUtils
 
-@Grab(group='software.amazon.awssdk', module='lambda', version='2.14.26')
+@Grab(group='software.amazon.awssdk', module='lambda', version='2.18.28')
 import software.amazon.awssdk.services.lambda.LambdaClient
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.lambda.model.PublishLayerVersionRequest
@@ -29,6 +29,11 @@ import software.amazon.awssdk.services.lambda.model.LayerVersionContentInput
 import software.amazon.awssdk.core.SdkBytes
 
 import java.nio.file.Path
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 import java.util.stream.Collectors
@@ -39,7 +44,8 @@ class Release {
     String arch
     String os
     String impl
-    String releaseDate
+    String releaseDateStr
+    OffsetDateTime releaseDate
     String fileName
     String link
     String mime
@@ -59,18 +65,26 @@ class Release {
             arch = matcher.group(2)
             os = matcher.group(3)
             impl = matcher.group(4)
-            releaseDate = matcher.group(5)
+            releaseDateStr = matcher.group(5)
             extension = matcher.group(6)
-            // System.out.println(this)
+        }
+
+        if (type == "jdk") {
+            try {
+                // Example release date format: 2022-09-15-04-49
+                releaseDate = OffsetDateTime.of(LocalDateTime.parse(releaseDateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")), ZoneOffset.UTC);
+            } catch (DateTimeParseException ex) {
+                // TODO: This is a named version release like "18.0.2.1_1".
+            }
         }
     }
 
-    Release(type, arch, os, impl, releaseDate) {
+    Release(type, arch, os, impl, releaseDateStr) {
         this.type = type
         this.arch = arch
         this.os = os
         this.impl = impl
-        this.releaseDate = releaseDate
+        this.releaseDateStr = releaseDateStr
     }
 
     String toSafeDirectoryName() {
@@ -80,7 +94,7 @@ class Release {
                 arch.toLowerCase().trim(),
                 os.toLowerCase().trim(),
                 impl.toLowerCase().trim(),
-                releaseDate.toLowerCase().trim()).md5()
+                releaseDateStr.toLowerCase().trim()).md5()
     }
 
     @Override
@@ -94,7 +108,7 @@ class Release {
         if (arch != release.arch) return false
         if (os != release.os) return false
         if (impl != release.impl) return false
-        if (releaseDate != release.releaseDate) return false
+        if (releaseDateStr != release.releaseDateStr) return false
 
         return true
     }
@@ -114,7 +128,11 @@ def getAdoptJdkReleases(version, regexPattern) {
     releasesMap.each { releaseJson ->
         releaseJson.assets.each { releaseAssetJson ->
             Release release = new Release(releaseAssetJson, regexPattern)
-            releases.add(release)
+            if (release.type == "jdk") {
+                if (release.arch != null && release.os != null && release.impl != null && release.releaseDateStr != null) {
+                    releases.add(release)
+                }
+            }
         }
     }
     return releases
@@ -222,15 +240,32 @@ def extractZip(jdkHashDir, jdkArchive) {
     return rootDir.toFile()
 }
 
+// Example filename for a JDK: OpenJDK18U-jdk_x64_alpine-linux_hotspot_18_36.tar.gz
+def releases = getAdoptJdkReleases(repoVersion, Pattern.compile("OpenJDK${repoVersion}U-([a-z]+)_([0-9a-z\\-]+)_([0-9a-z\\-]+)_([0-9a-z]+)[_|\\-]([0-9\\-_]+)\\.(.+)"))
+Release release
+if (releaseDate == '$latest') {
+    def latestLinuxReleaseWithCorrespondingWindowsRelease = releases.stream()
+            .filter(r -> r.releaseDateStr != null)
+            .filter(r -> r.type == type && r.arch == arch && r.os == os && r.impl == impl)
+            .sorted(Comparator.comparing(r -> r.releaseDateStr))
+            .filter(r -> releases.contains(new Release(r.type, r.arch, "windows", r.impl, r.releaseDateStr)))
+            .findFirst()
+    if (latestLinuxReleaseWithCorrespondingWindowsRelease.isPresent()) {
+        System.out.println("Latest JDK release with ${arch} and windows artifacts: ${latestLinuxReleaseWithCorrespondingWindowsRelease.get().fileName}")
+    } else {
+        throw new RuntimeException("There is no release for JDK ${repoVersion} that has linux and windows artifacts.")
+    }
+    release = latestLinuxReleaseWithCorrespondingWindowsRelease.get()
+} else {
 // Get the release corresponding to the properties configured in gmaven-plus plugin config (in pom.xml).
-def releases = getAdoptJdkReleases(repoVersion, Pattern.compile("OpenJDK${repoVersion}-([a-z]+)_([0-9a-z\\-]+)_([0-9a-z]+)_([0-9a-z]+)[_|\\-]([0-9\\-_]+)\\.(.+)"))
-def releaseOpt = releases.stream().filter { r -> r.equals(new Release(type, arch, os, impl, releaseDate))}.findFirst()
-if (!releaseOpt.isPresent()) {
-    throw new IllegalArgumentException("Could not find JDK release for version = " + repoVersion + ", type = " +
-            type + ", arch = " + arch + ", os = " + os + ", impl = " + impl + ", releaseDate = " + releaseDate)
+    def releaseOpt = releases.stream().filter { r -> r.equals(new Release(type, arch, os, impl, releaseDate)) }.findFirst()
+    if (!releaseOpt.isPresent()) {
+        throw new IllegalArgumentException("Could not find JDK release for version = " + repoVersion + ", type = " +
+                type + ", arch = " + arch + ", os = " + os + ", impl = " + impl + ", releaseDate = " + releaseDate)
+    }
+    release = releaseOpt.get()
 }
-Release release = releaseOpt.get()
-System.out.println("Found requested release: \"" + release.fileName + "\".")
+System.out.println("Using release: \"" + release.fileName + "\".")
 
 def jdkRootDir = getJdkRootDir(release)
 System.out.println("JDK root directory: \"" + jdkRootDir + "\".")
@@ -271,7 +306,8 @@ Process process = new ProcessBuilder(
         "--launcher", "bootstrap=com.dow.aws.lambda/com.dow.aws.lambda.Bootstrap",
         "--compress=2", "--no-header-files", "--no-man-pages",
         // "--strip-debug",
-        // Consider using --strip-native-debug-symbols instead.
+        // Consider using --strip-native-debug-symbols instead (only supported on Linux).
+        // --vm server ?
         "--module-path", jdkRootDir.toString() + "/jmods" + modulePathSeparator +
         project.build.directory + "/lib" + modulePathSeparator +
         project.build.directory + "/classes",
@@ -300,18 +336,29 @@ bootstrapScript.setExecutable(true, false)
 
 def generatedLauncherScript = new File(project.build.directory + "/dist/bin/bootstrap")
 def newText = generatedLauncherScript.text
+// It seems that making a JFR recording is not possible when CDS is enabled - even though the error message makes it
+// seem as though the recording won't be active during CDS dumping, the JFR file never gets created:
+//  -XX:StartFlightRecording=delay=2s,dumponexit=true
+
 //  #-Xlog:class+load=info -Xlog:cds -Xlog:cds+dynamic=debug
+// It seems that Java 14 added an unstable plugin to jlink called "--add-options" which we could use when invoking jlink
+// so we don't have to do this replace business:
+//  --add-options <options>   Prepend the specified <options> string, which may
+//                            include whitespace, before any other options when
+//                            invoking the virtual machine in the resulting image.
 newText = newText.replace('JLINK_VM_OPTIONS=',
-        '''
+'''
 dynamicArchive="/tmp/archive.jsa"
 if [ ! -f "$archiveFile" ]; then
   archiveArg="-XX:ArchiveClassesAtExit"
 else
   archiveArg="-XX:SharedArchiveFile"
 fi
-JLINK_VM_OPTIONS="$archiveArg=$dynamicArchive -XX:+UseCompressedOops -XX:+UseG1GC -XX:+UseCompressedClassPointers -Xshare:on -Xlog:cds=warning"
 export AWS_EXECUTION_ENV=AWS_Lambda_java11
-''')
+JLINK_VM_OPTIONS="$archiveArg=$dynamicArchive -XX:+UseCompressedOops -XX:+UseG1GC -XX:+UseCompressedClassPointers -Xshare:on -Xlog:cds=warning"
+''' + project.properties['aws.lambda.test'] == "true" ?
+        "export AWS_LAMBDA_TEST=true\n" : "")
+
 generatedLauncherScript.newWriter().withWriter {w -> w << newText}
 
 // cp -r ./dist ./layer/dist
@@ -322,9 +369,8 @@ new groovy.ant.AntBuilder().copy(todir: project.build.directory + "/layer/dist")
 // In case ./layer/dist/lib/server/classes.jsa doesn't exist we need to generate the base CDS archives.
 // This needs to be done in a Linux environment as we need to run "java -Xshare:dump" on the Linux JVM we
 // are bundling with. TODO: Check if classes.jsa exists already and if so don't run this snippet.
-System.out.println("Running java -Xshare:dump on Linux JVM to generate base classes.jsa archive...")
-
-ProcessBuilder dumpProcessBuilder = new ProcessBuilder("bash.exe", "-c", "\"target/layer/dist/bin/java -Xmx248M -Xshare:dump\"")
+System.out.println("Running java -Xshare:dump on Linux JVM to generate base classes.jsa archive (requires Windows Subsystem for Linux)...")
+ProcessBuilder dumpProcessBuilder = new ProcessBuilder("bash.exe", "-c", "\"" + '\"$(wslpath -a \'' + "$project.build.directory" + "')\"/layer/dist/bin/java -Xmx248M -Xshare:dump\"")
         .inheritIO();
 Process dumpProcess = dumpProcessBuilder.start()
 exitCode = dumpProcess.waitFor()
@@ -332,6 +378,7 @@ if (exitCode != 0) {
     System.out.println("Non-zero exit code from java -Xshare:dump: " + exitCode)
     System.exit(-1)
 }
+dumpProcess.destroy()
 
 // zip -r layer.zip ./layer/*
 def zipFile = new File(project.build.directory + "/layer.zip")
@@ -362,13 +409,24 @@ archiveStream.close()
 LambdaClient lambdaClient = LambdaClient.builder()
         .region(Region.of(awsRegion)).build()
 
-// aws lambda publish-layer-version --layer-name Custom Java Runtime --zip-file fileb://layer.zip
-def publishLayerRequest = PublishLayerVersionRequest.builder()
-        .layerName("Custom Java Runtime")
-        .description(String.format("%s runtime.", jdkRootDir.getName()))
-        .content(LayerVersionContentInput.builder()
-                .zipFile(SdkBytes.fromByteArray(Files.readAllBytes(zipFile.toPath()))).build()).build()
+// aws lambda publish-layer-version --layer-name DOW_Lambda_Java_Runtime --zip-file fileb://layer.zip
+String layerName
+if (project.properties['aws.lambda.test'] == "true") {
+    layerName = "Custom_Java_Test_Runtime"
+} else {
+    layerName = "Custom_Java_Runtime"
+}
 
-def publishLayerResult = lambdaClient.publishLayerVersion(publishLayerRequest)
+if (project.properties['aws.lambda.publish'] == "true") {
+    def publishLayerRequest = PublishLayerVersionRequest.builder()
+            .layerName(layerName)
+            .description(String.format("%s runtime.", jdkRootDir.getName()))
+            .content(LayerVersionContentInput.builder()
+                    .zipFile(SdkBytes.fromByteArray(Files.readAllBytes(zipFile.toPath()))).build()).build()
 
-System.out.println("Layer Version ARN: " + publishLayerResult.layerVersionArn())
+    def publishLayerResult = lambdaClient.publishLayerVersion(publishLayerRequest)
+
+    System.out.println("Layer Version ARN: " + publishLayerResult.layerVersionArn())
+} else {
+    System.out.println("Skipping publishing as \"aws.lambda.publish\" Maven property is not \"true\".")
+}
